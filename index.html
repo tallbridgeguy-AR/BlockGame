@@ -1,0 +1,1267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CE 1700: 3D Block Orthographic Practice - tallbridgeguy</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: #f0f4f8;
+            margin: 0;
+            padding: 20px;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            padding: 24px;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 16px;
+            margin-bottom: 24px;
+            padding-bottom: 16px;
+            border-bottom: 2px solid #edf2f7;
+        }
+
+        h1 {
+            margin: 0;
+            font-size: 1.4rem;
+            color: #1a202c;
+        }
+
+        .controls {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        select, button {
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            border: 1px solid #cbd5e0;
+            background: white;
+            transition: all 0.2s ease;
+        }
+
+        button.primary { background-color: #5a52d5; color: white; border: none; }
+        button.primary:hover { background-color: #4338ca; }
+        button.success { background-color: #10b981; color: white; border: none; }
+        button.success:hover { background-color: #059669; }
+        button.danger { background-color: #ef4444; color: white; border: none; }
+        button.danger:hover { background-color: #dc2626; }
+
+        .game-bar {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background-color: #f8fafc;
+            border: 2px solid #e2e8f0;
+            padding: 6px 12px;
+            border-radius: 8px;
+        }
+
+        .game-btn { background-color: #d97706; color: white; border: none; }
+        .game-btn:hover { background-color: #b45309; }
+
+        .game-stat {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-width: 65px;
+            padding: 2px 8px;
+            background: white;
+            border: 1px solid #cbd5e0;
+            border-radius: 6px;
+        }
+
+        .game-stat-label {
+            font-size: 0.65rem;
+            font-weight: 700;
+            color: #718096;
+            text-transform: uppercase;
+        }
+
+        .game-stat-value {
+            font-size: 1.1rem;
+            font-weight: 800;
+            color: #1a202c;
+            line-height: 1.1;
+        }
+
+        .timer-warning {
+            color: #dc2626 !important;
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        .workspace {
+            display: grid;
+            grid-template-columns: 1fr 1.25fr;
+            gap: 24px;
+        }
+
+        @media (max-width: 900px) {
+            .workspace { grid-template-columns: 1fr; }
+            body { padding: 10px; }
+            .container { padding: 14px; }
+        }
+
+        .panel {
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 16px;
+            position: relative;
+            min-width: 0;
+        }
+
+        .panel-title {
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: #718096;
+            letter-spacing: 0.05em;
+            margin-bottom: 12px;
+        }
+
+        #canvas-container {
+            width: 100%;
+            height: 380px;
+            position: relative;
+            background: #f8fafc;
+            border-radius: 6px;
+            overflow: hidden;
+            touch-action: none;
+            cursor: grab;
+        }
+
+        #canvas-container:active { cursor: grabbing; }
+
+        .instruction {
+            font-size: 0.8rem;
+            color: #718096;
+            margin-top: 8px;
+        }
+
+        .grid-views {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-top: 12px;
+        }
+
+        .view-box {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background: #f8fafc;
+            border: 1px dashed #cbd5e0;
+            border-radius: 8px;
+            padding: 10px;
+            min-width: 0;
+        }
+
+        .view-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            margin-bottom: 8px;
+            padding: 0 4px;
+        }
+
+        .view-label { font-size: 0.85rem; font-weight: 800; }
+        .view-label.top { color: #dd6b20; }
+        .view-label.front { color: #2b6cb0; }
+        .view-label.right { color: #276749; }
+
+        .btn-undo {
+            padding: 4px 10px;
+            font-size: 0.75rem;
+            background: #e2e8f0;
+            border: 1px solid #cbd5e0;
+            border-radius: 4px;
+            color: #4a5568;
+        }
+
+        .btn-undo:hover { background: #cbd5e0; }
+
+        .dot-canvas {
+            width: 100%;
+            max-width: 280px;
+            height: auto;
+            aspect-ratio: 1 / 1;
+            background: white;
+            border: 1px solid #cbd5e0;
+            border-radius: 6px;
+            cursor: crosshair;
+            touch-action: none;
+            -webkit-user-select: none;
+            user-select: none;
+            box-shadow: inset 0 1px 3px rgba(0,0,0,0.02);
+        }
+
+        .help-box {
+            font-size: 0.8rem;
+            color: #4a5568;
+            line-height: 1.5;
+            padding: 12px;
+            border-radius: 8px;
+            background: #f8fafc;
+            border: 1px dashed #cbd5e0;
+        }
+
+        .help-box ul { margin: 6px 0 0; padding-left: 18px; }
+
+        button:disabled { opacity: 0.5; cursor: not-allowed; }
+        button.hint { background: #fef3c7; border-color: #f59e0b; color: #92400e; }
+        button.hint:hover:not(:disabled) { background: #fde68a; }
+
+        .seed-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-top: 12px;
+            font-size: 0.85rem;
+            color: #4a5568;
+        }
+        .seed-row input {
+            width: 96px;
+            padding: 6px 10px;
+            border: 1px solid #cbd5e0;
+            border-radius: 6px;
+            font-size: 0.9rem;
+        }
+        .seed-row button { padding: 6px 12px; }
+
+        .toast {
+            position: fixed;
+            left: 50%;
+            bottom: 20px;
+            transform: translateX(-50%);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            max-width: min(92vw, 560px);
+            padding: 12px 14px;
+            border-radius: 10px;
+            color: white;
+            font-weight: 600;
+            font-size: 0.95rem;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+        }
+        .toast[hidden] { display: none; }
+        .toast.success { background: #059669; }
+        .toast.error { background: #dc2626; }
+        .toast.info { background: #334155; }
+        #toast-msg { white-space: pre-line; }
+        .toast-btn { background: white; color: #1a202c; border: none; padding: 6px 12px; white-space: nowrap; }
+        .toast-close { background: transparent; color: white; border: none; font-size: 1.3rem; line-height: 1; padding: 0 4px; }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <h1>CE 1700: 3D Block Orthographic Practice - tallbridgeguy</h1>
+        <div class="controls">
+            <label for="level">Level:</label>
+            <select id="level">
+                <option value="1" selected>1 – Beginner</option>
+                <option value="2">2 – Intermediate</option>
+                <option value="3">3 – Advanced</option>
+            </select>
+            <button class="primary" id="btn-new">New Model</button>
+            <button id="btn-reset">Reset View</button>
+            <button class="danger" id="btn-clear">Clear Drawing</button>
+            <button class="success" id="btn-check">Check Answer</button>
+            <button class="hint" id="btn-missing">Show Missing</button>
+
+            <div class="game-bar">
+                <button class="game-btn" id="btn-start-game">Start Game ⏱️</button>
+                <div class="game-stat">
+                    <span class="game-stat-label">TIME</span>
+                    <span class="game-stat-value" id="game-timer">2:00</span>
+                </div>
+                <div class="game-stat">
+                    <span class="game-stat-label">STREAK 🔥</span>
+                    <span class="game-stat-value" id="game-score">0</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="workspace">
+        <div class="panel">
+            <div class="panel-title">3D SOLID MODEL</div>
+            <div id="canvas-container"></div>
+            <div class="instruction">💡 <strong>Click &amp; drag</strong> (or swipe) inside the 3D viewer to rotate and see all sides.</div>
+            <div class="seed-row">
+                <label for="seed-input">Model code:</label>
+                <input id="seed-input" type="text" inputmode="numeric" maxlength="6" placeholder="1234" autocomplete="off">
+                <button id="btn-load-seed">Load</button>
+                <button id="btn-copy-link">Copy Link</button>
+            </div>
+            <div class="instruction">Same level + same code = same model for everyone. Share the link to assign a specific problem.</div>
+        </div>
+
+        <div class="panel">
+            <div class="panel-title">ORTHOGRAPHIC DRAWING WORKSPACE</div>
+
+            <div class="grid-views">
+                <div class="view-box">
+                    <div class="view-header">
+                        <span class="view-label top">TOP VIEW</span>
+                        <button class="btn-undo" onclick="undoLastLine('top')">Undo</button>
+                    </div>
+                    <canvas id="canvas-top" class="dot-canvas" width="440" height="440"></canvas>
+                </div>
+
+                <div class="help-box">
+                    <strong>How to draw</strong>
+                    <ul>
+                        <li>Press and drag from one dot to another (mouse or finger).</li>
+                        <li>Draw every <em>visible edge</em>: the outline of the view, plus a line wherever two surfaces meet at a different depth.</li>
+                        <li>Flat surfaces that lie in the same plane have <em>no</em> line between them.</li>
+                        <li>Hidden lines are not needed.</li>
+                        <li>Stuck? <em>Show Missing</em> marks the lines you left out in dashed orange (no streak credit for that model).</li>
+                    </ul>
+                </div>
+
+                <div class="view-box">
+                    <div class="view-header">
+                        <span class="view-label front">FRONT VIEW</span>
+                        <button class="btn-undo" onclick="undoLastLine('front')">Undo</button>
+                    </div>
+                    <canvas id="canvas-front" class="dot-canvas" width="440" height="440"></canvas>
+                </div>
+
+                <div class="view-box">
+                    <div class="view-header">
+                        <span class="view-label right">RIGHT VIEW</span>
+                        <button class="btn-undo" onclick="undoLastLine('right')">Undo</button>
+                    </div>
+                    <canvas id="canvas-right" class="dot-canvas" width="440" height="440"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="toast" class="toast" role="status" aria-live="polite" hidden>
+    <span id="toast-msg"></span>
+    <button id="toast-action" class="toast-btn" hidden></button>
+    <button id="toast-close" class="toast-close" aria-label="Dismiss">&times;</button>
+</div>
+
+<script>
+    const GRID_SIZE = 3;
+    const DOT_ROWS = 3;
+    const DOT_COLS = 3;
+    const VIEWS = ['top', 'front', 'right'];
+
+    let scene, camera, renderer, modelGroup;
+    let voxels = null; // voxels[x][y][z] = boolean
+
+    let userLines = { top: [], front: [], right: [] };
+    let expectedLines = { top: [], front: [], right: [] };
+    let showValidation = false;
+
+    let isDraggingModel = false;
+    let previousMousePosition = { x: 0, y: 0 };
+    const defaultRotation = { x: 0.4, y: -0.6 };
+
+    let isGameActive = false;
+    let streakCount = 0;
+    let gameTimeRemaining = 120;
+    let gameTimerInterval = null;
+
+    let activeDrawing = null;
+
+    let rand = Math.random;   // replaced by a seeded generator for every model
+    let currentSeed = 0;
+    let usedHelp = false;     // Show Missing used on this model
+    let showMissing = false;
+    let solved = false;       // this model already earned its point
+
+    function mulberry32(a) {
+        return function () {
+            a |= 0; a = (a + 0x6D2B79F5) | 0;
+            let t = Math.imul(a ^ (a >>> 15), 1 | a);
+            t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+            return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+        };
+    }
+
+    const COLORS = [0x3182ce, 0xe53e3e, 0x38a169, 0xd69e2e, 0x805ad5, 0xdd6b20, 0x0891b2, 0xdb2777];
+
+    window.addEventListener('DOMContentLoaded', () => {
+        initThreeJS();
+        setupModelDragEvents();
+        setupDrawingCanvases();
+
+        const params = new URLSearchParams(window.location.search);
+        const lv = parseInt(params.get('level'), 10);
+        if (lv >= 1 && lv <= 3) document.getElementById('level').value = String(lv);
+        const sd = parseInt(params.get('seed'), 10);
+        generateNewSolidModel(sd > 0 ? sd : undefined);
+
+        document.getElementById('btn-new').addEventListener('click', () => { hideToast(); generateNewSolidModel(); });
+        document.getElementById('level').addEventListener('change', () => { hideToast(); generateNewSolidModel(); });
+        document.getElementById('btn-load-seed').addEventListener('click', loadSeedFromInput);
+        document.getElementById('seed-input').addEventListener('keydown', (e) => { if (e.key === 'Enter') loadSeedFromInput(); });
+        document.getElementById('btn-copy-link').addEventListener('click', copyModelLink);
+        document.getElementById('btn-missing').addEventListener('click', toggleMissing);
+        document.getElementById('toast-close').addEventListener('click', hideToast);
+        document.getElementById('btn-reset').addEventListener('click', resetView);
+        document.getElementById('btn-clear').addEventListener('click', clearAllDrawings);
+        document.getElementById('btn-check').addEventListener('click', checkAnswer);
+        document.getElementById('btn-start-game').addEventListener('click', toggleGameMode);
+
+        window.addEventListener('resize', onWindowResize);
+    });
+
+    /* ---------------------------------------------------------------
+       THREE.JS SCENE
+    --------------------------------------------------------------- */
+    function initThreeJS() {
+        const container = document.getElementById('canvas-container');
+
+        scene = new THREE.Scene();
+        scene.background = new THREE.Color(0xf8fafc);
+
+        camera = new THREE.PerspectiveCamera(28, container.clientWidth / container.clientHeight, 0.1, 1000);
+        camera.position.set(5.5, 5.5, 8.2);
+        camera.lookAt(0, 0, 0);
+
+        renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(container.clientWidth, container.clientHeight);
+        renderer.setPixelRatio(window.devicePixelRatio);
+        container.appendChild(renderer.domElement);
+
+        scene.add(new THREE.AmbientLight(0xffffff, 0.65));
+
+        const dirLight = new THREE.DirectionalLight(0xffffff, 0.7);
+        dirLight.position.set(10, 20, 15);
+        scene.add(dirLight);
+
+        modelGroup = new THREE.Group();
+        scene.add(modelGroup);
+
+        resetView();
+        animate();
+    }
+
+    function animate() {
+        requestAnimationFrame(animate);
+        renderer.render(scene, camera);
+    }
+
+    function setupModelDragEvents() {
+        const container = document.getElementById('canvas-container');
+
+        container.addEventListener('pointerdown', (e) => {
+            isDraggingModel = true;
+            previousMousePosition = { x: e.clientX, y: e.clientY };
+            container.setPointerCapture(e.pointerId);
+        });
+
+        container.addEventListener('pointermove', (e) => {
+            if (!isDraggingModel) return;
+            const dx = e.clientX - previousMousePosition.x;
+            const dy = e.clientY - previousMousePosition.y;
+            modelGroup.rotation.y += dx * 0.01;
+            modelGroup.rotation.x += dy * 0.01;
+            previousMousePosition = { x: e.clientX, y: e.clientY };
+        });
+
+        const stop = () => { isDraggingModel = false; };
+        container.addEventListener('pointerup', stop);
+        container.addEventListener('pointercancel', stop);
+    }
+
+    function resetView() {
+        modelGroup.rotation.x = defaultRotation.x;
+        modelGroup.rotation.y = defaultRotation.y;
+    }
+
+    /* ---------------------------------------------------------------
+       MODEL GENERATION (a library of random solids)
+    --------------------------------------------------------------- */
+    function emptyGrid() {
+        return Array.from({ length: GRID_SIZE }, () =>
+            Array.from({ length: GRID_SIZE }, () => Array(GRID_SIZE).fill(false)));
+    }
+
+    function randInt(a, b) { return a + Math.floor(rand() * (b - a + 1)); }
+
+    function countVoxels(g) {
+        let n = 0;
+        for (let x = 0; x < GRID_SIZE; x++)
+            for (let y = 0; y < GRID_SIZE; y++)
+                for (let z = 0; z < GRID_SIZE; z++)
+                    if (g[x][y][z]) n++;
+        return n;
+    }
+
+    function isConnected(g) {
+        let start = null;
+        for (let x = 0; x < GRID_SIZE && !start; x++)
+            for (let y = 0; y < GRID_SIZE && !start; y++)
+                for (let z = 0; z < GRID_SIZE && !start; z++)
+                    if (g[x][y][z]) start = [x, y, z];
+        if (!start) return false;
+
+        const seen = new Set([start.join(',')]);
+        const stack = [start];
+        const dirs = [[1,0,0],[-1,0,0],[0,1,0],[0,-1,0],[0,0,1],[0,0,-1]];
+        while (stack.length) {
+            const [x, y, z] = stack.pop();
+            for (const d of dirs) {
+                const nx = x + d[0], ny = y + d[1], nz = z + d[2];
+                if (nx < 0 || ny < 0 || nz < 0 || nx >= GRID_SIZE || ny >= GRID_SIZE || nz >= GRID_SIZE) continue;
+                if (!g[nx][ny][nz]) continue;
+                const key = [nx, ny, nz].join(',');
+                if (seen.has(key)) continue;
+                seen.add(key);
+                stack.push([nx, ny, nz]);
+            }
+        }
+        return seen.size === countVoxels(g);
+    }
+
+    // Style A: stepped / terraced solid (every column rests on the floor)
+    function genHeightmap(easy) {
+        const g = emptyGrid();
+        for (let x = 0; x < GRID_SIZE; x++)
+            for (let z = 0; z < GRID_SIZE; z++) {
+                const h = easy ? randInt(1, 2) : (rand() < 0.2 ? 0 : randInt(1, 3));
+                for (let y = 0; y < h; y++) g[x][y][z] = true;
+            }
+        return g;
+    }
+
+    // Style B: solid block with notches, slots and tunnels carved out
+    function genCarved() {
+        const g = emptyGrid();
+        const w = randInt(2, 3), h = randInt(2, 3), d = randInt(2, 3);
+        const ox = randInt(0, GRID_SIZE - w), oz = randInt(0, GRID_SIZE - d);
+        for (let x = 0; x < w; x++)
+            for (let y = 0; y < h; y++)
+                for (let z = 0; z < d; z++)
+                    g[ox + x][y][oz + z] = true;
+
+        const cuts = randInt(1, 3);
+        for (let i = 0; i < cuts; i++) {
+            const cx = randInt(1, 2), cy = randInt(1, 2), cz = randInt(1, 2);
+            const sx = randInt(0, GRID_SIZE - cx);
+            const sy = randInt(0, GRID_SIZE - cy);
+            const sz = randInt(0, GRID_SIZE - cz);
+            // sometimes stretch the cut all the way through one axis (slot / tunnel)
+            const through = rand() < 0.5 ? randInt(0, 2) : -1;
+            const rx = through === 0 ? [0, GRID_SIZE - 1] : [sx, sx + cx - 1];
+            const ry = through === 1 ? [0, GRID_SIZE - 1] : [sy, sy + cy - 1];
+            const rz = through === 2 ? [0, GRID_SIZE - 1] : [sz, sz + cz - 1];
+            const backup = JSON.parse(JSON.stringify(g));
+            for (let x = rx[0]; x <= rx[1]; x++)
+                for (let y = ry[0]; y <= ry[1]; y++)
+                    for (let z = rz[0]; z <= rz[1]; z++)
+                        g[x][y][z] = false;
+            if (!isConnected(g)) { // undo a cut that splits the solid
+                for (let x = 0; x < GRID_SIZE; x++)
+                    for (let y = 0; y < GRID_SIZE; y++)
+                        for (let z = 0; z < GRID_SIZE; z++)
+                            g[x][y][z] = backup[x][y][z];
+            }
+        }
+        return g;
+    }
+
+    // Style C: an L / T / U shaped extrusion
+    function genExtrusion() {
+        const g = emptyGrid();
+        const shapes = [
+            [[1,0,0],[1,0,0],[1,1,1]],           // L
+            [[1,1,1],[0,1,0],[0,1,0]],           // T
+            [[1,0,1],[1,0,1],[1,1,1]],           // U
+            [[0,1,0],[1,1,1],[0,1,0]],           // plus
+            [[1,1,0],[0,1,1],[0,0,0]],           // S / Z
+            [[1,0,0],[1,1,0],[1,1,1]]            // stairs
+        ];
+        const profile = shapes[randInt(0, shapes.length - 1)];
+        const len = randInt(1, 3);
+        const axis = randInt(0, 2);
+        const start = randInt(0, GRID_SIZE - len);
+        for (let a = 0; a < GRID_SIZE; a++)
+            for (let b = 0; b < GRID_SIZE; b++) {
+                if (!profile[a][b]) continue;
+                for (let k = start; k < start + len; k++) {
+                    let x, y, z;
+                    if (axis === 0) { x = k; y = 2 - a; z = b; }
+                    else if (axis === 1) { x = b; y = k; z = a; }
+                    else { x = b; y = 2 - a; z = k; }
+                    g[x][y][z] = true;
+                }
+            }
+        return g;
+    }
+
+    function generateVoxels(level) {
+        for (let attempt = 0; attempt < 300; attempt++) {
+            const r = rand();
+            let g;
+            if (level === 1) g = genHeightmap(true);                                   // simple steps
+            else if (level === 2) g = r < 0.5 ? genHeightmap(false) : genExtrusion();  // steps + L/T/U shapes
+            else g = r < 0.25 ? genHeightmap(false) : (r < 0.75 ? genCarved() : genExtrusion()); // everything
+            const n = countVoxels(g);
+            if (n < 4 || n === 27) continue;
+            if (level === 1 && (n < 10 || n > 17)) continue; // never a flat slab or a full block
+            if (!isConnected(g)) continue;
+            return g;
+        }
+        return genHeightmap(level === 1);
+    }
+
+    /* ---------------------------------------------------------------
+       BUILD THE SOLID: only outer faces, with edges drawn only where
+       two faces are NOT in the same plane
+    --------------------------------------------------------------- */
+    function filled(x, y, z) {
+        if (x < 0 || y < 0 || z < 0 || x >= GRID_SIZE || y >= GRID_SIZE || z >= GRID_SIZE) return false;
+        return voxels[x][y][z];
+    }
+
+    function generateNewSolidModel(seed) {
+        const level = parseInt(document.getElementById('level').value, 10) || 1;
+        if (typeof seed !== 'number' || !(seed > 0)) seed = Math.floor(1000 + Math.random() * 99000);
+        currentSeed = seed;
+        rand = mulberry32(seed);
+        usedHelp = false;
+        showMissing = false;
+        solved = false;
+        updateMissingButton();
+        document.getElementById('seed-input').value = String(seed);
+
+        resetView();
+
+        while (modelGroup.children.length > 0) {
+            const child = modelGroup.children[0];
+            modelGroup.remove(child);
+            if (child.geometry) child.geometry.dispose();
+        }
+
+        voxels = generateVoxels(level);
+        buildSolidMesh();
+
+        const floorGrid = new THREE.GridHelper(3, 3, 0x2b6cb0, 0x4a5568);
+        floorGrid.position.y = -1 - 0.5;
+        modelGroup.add(floorGrid);
+
+        createCleanLabels();
+        calculateExpectedLines();
+        clearAllDrawings();
+    }
+
+    function buildSolidMesh() {
+        const positions = [];
+        const normals = [];
+        const linePositions = [];
+        const edgeKeys = new Set();
+        const offset = 1; // centers the 3x3x3 grid on the origin
+
+        const unit = (axis, s = 1) => {
+            const v = [0, 0, 0];
+            v[axis] = s;
+            return v;
+        };
+        const add = (a, b) => [a[0] + b[0], a[1] + b[1], a[2] + b[2]];
+        const scale = (a, s) => [a[0] * s, a[1] * s, a[2] * s];
+
+        for (let x = 0; x < GRID_SIZE; x++)
+            for (let y = 0; y < GRID_SIZE; y++)
+                for (let z = 0; z < GRID_SIZE; z++) {
+                    if (!voxels[x][y][z]) continue;
+                    const v = [x, y, z];
+
+                    for (let a = 0; a < 3; a++)
+                        for (const sign of [1, -1]) {
+                            const n = unit(a, sign);
+                            if (filled(x + n[0], y + n[1], z + n[2])) continue; // hidden face
+
+                            const b = (a + 1) % 3;
+                            const c = (a + 2) % 3;
+                            const center = add(v, scale(n, 0.5));
+
+                            // quad (two triangles)
+                            const corner = (sb, sc) =>
+                                add(center, add(scale(unit(b), 0.5 * sb), scale(unit(c), 0.5 * sc)));
+                            const q = [corner(-1, -1), corner(1, -1), corner(1, 1), corner(-1, 1)];
+                            [0, 1, 2, 0, 2, 3].forEach(i => {
+                                positions.push(q[i][0] - offset, q[i][1] - offset, q[i][2] - offset);
+                                normals.push(n[0], n[1], n[2]);
+                            });
+
+                            // edges of this face
+                            const edgeOpts = [[b, 1, c], [b, -1, c], [c, 1, b], [c, -1, b]];
+                            for (const [p, s, qAxis] of edgeOpts) {
+                                const e = unit(p, s);
+                                const B = add(v, e);          // neighbour in the same plane
+                                const C = add(B, n);          // neighbour around the corner
+                                const concave = filled(C[0], C[1], C[2]);
+                                const coplanar = !concave && filled(B[0], B[1], B[2]);
+                                if (coplanar) continue;
+
+                                const mid = add(center, scale(e, 0.5));
+                                const p1 = add(mid, scale(unit(qAxis), 0.5));
+                                const p2 = add(mid, scale(unit(qAxis), -0.5));
+                                const k1 = p1.join(','), k2 = p2.join(',');
+                                const key = k1 < k2 ? k1 + '|' + k2 : k2 + '|' + k1;
+                                if (edgeKeys.has(key)) continue;
+                                edgeKeys.add(key);
+                                linePositions.push(
+                                    p1[0] - offset, p1[1] - offset, p1[2] - offset,
+                                    p2[0] - offset, p2[1] - offset, p2[2] - offset
+                                );
+                            }
+                        }
+                }
+
+        const geo = new THREE.BufferGeometry();
+        geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+        geo.setAttribute('normal', new THREE.Float32BufferAttribute(normals, 3));
+
+        const color = COLORS[Math.floor(rand() * COLORS.length)];
+        const mat = new THREE.MeshStandardMaterial({
+            color, roughness: 0.45, metalness: 0.05, side: THREE.DoubleSide,
+            polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1
+        });
+        modelGroup.add(new THREE.Mesh(geo, mat));
+
+        const lineGeo = new THREE.BufferGeometry();
+        lineGeo.setAttribute('position', new THREE.Float32BufferAttribute(linePositions, 3));
+        modelGroup.add(new THREE.LineSegments(lineGeo, new THREE.LineBasicMaterial({ color: 0x1a202c })));
+    }
+
+    function createCleanLabels() {
+        function makeTextSprite(message, colorHex) {
+            const canvas = document.createElement('canvas');
+            canvas.width = 256;
+            canvas.height = 128;
+            const ctx = canvas.getContext('2d');
+
+            ctx.font = 'Bold 36px Arial';
+            ctx.fillStyle = colorHex;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(message, 128, 64);
+
+            const texture = new THREE.CanvasTexture(canvas);
+            const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: texture }));
+            sprite.scale.set(2, 1, 1);
+            return sprite;
+        }
+
+        const frontSprite = makeTextSprite("FRONT", "#2b6cb0");
+        frontSprite.position.set(0, -1.8, 2.2);
+
+        const rightSprite = makeTextSprite("RIGHT", "#276749");
+        rightSprite.position.set(2.2, -1.8, 0);
+
+        const topSprite = makeTextSprite("TOP", "#dd6b20");
+        topSprite.position.set(0, 2.2, 0);
+
+        modelGroup.add(frontSprite);
+        modelGroup.add(rightSprite);
+        modelGroup.add(topSprite);
+    }
+
+    /* ---------------------------------------------------------------
+       EXPECTED ANSWER
+       For each view, find the nearest surface depth in every grid cell.
+       A line is expected wherever the depth changes between two
+       neighbouring cells (or between a cell and empty space).
+    --------------------------------------------------------------- */
+    function calculateExpectedLines() {
+        expectedLines = { top: [], front: [], right: [] };
+
+        // depth[r][c]: larger = nearer to viewer, -1 = nothing there
+        const depth = {
+            top:   Array.from({ length: 3 }, () => Array(3).fill(-1)),
+            front: Array.from({ length: 3 }, () => Array(3).fill(-1)),
+            right: Array.from({ length: 3 }, () => Array(3).fill(-1))
+        };
+
+        for (let x = 0; x < GRID_SIZE; x++)
+            for (let y = 0; y < GRID_SIZE; y++)
+                for (let z = 0; z < GRID_SIZE; z++) {
+                    if (!voxels[x][y][z]) continue;
+                    // top: looking down, front of model at bottom of drawing
+                    depth.top[z][x] = Math.max(depth.top[z][x], y);
+                    // front: looking toward -z
+                    depth.front[2 - y][x] = Math.max(depth.front[2 - y][x], z);
+                    // right: looking toward -x
+                    depth.right[2 - y][2 - z] = Math.max(depth.right[2 - y][2 - z], x);
+                }
+
+        VIEWS.forEach(view => {
+            const d = (r, c) => (r < 0 || c < 0 || r >= 3 || c >= 3) ? -1 : depth[view][r][c];
+
+            // vertical lines between horizontally neighbouring cells
+            for (let r = 0; r < 3; r++)
+                for (let c = 0; c <= 3; c++)
+                    if (d(r, c - 1) !== d(r, c))
+                        expectedLines[view].push(canonicalLine({ r1: r, c1: c, r2: r + 1, c2: c }));
+
+            // horizontal lines between vertically neighbouring cells
+            for (let r = 0; r <= 3; r++)
+                for (let c = 0; c < 3; c++)
+                    if (d(r - 1, c) !== d(r, c))
+                        expectedLines[view].push(canonicalLine({ r1: r, c1: c, r2: r, c2: c + 1 }));
+        });
+    }
+
+    /* ---------------------------------------------------------------
+       DRAWING (mouse, pen and touch via pointer events)
+    --------------------------------------------------------------- */
+    function setupDrawingCanvases() {
+        VIEWS.forEach(view => {
+            const canvas = document.getElementById(`canvas-${view}`);
+
+            canvas.addEventListener('pointerdown', (e) => {
+                e.preventDefault();
+                const pt = getCanvasDotCoordinate(canvas, e, 0.6);
+                if (pt) {
+                    activeDrawing = { view, startDot: pt, currentPos: getCanvasPixelCoordinate(canvas, e), pointerId: e.pointerId };
+                    canvas.setPointerCapture(e.pointerId);
+                    redrawCanvas(view);
+                }
+            });
+
+            canvas.addEventListener('pointermove', (e) => {
+                if (!activeDrawing || activeDrawing.view !== view) return;
+                e.preventDefault();
+                activeDrawing.currentPos = getCanvasPixelCoordinate(canvas, e);
+                redrawCanvas(view);
+            });
+
+            const finish = (e) => {
+                if (!activeDrawing || activeDrawing.view !== view) return;
+                e.preventDefault();
+                const start = activeDrawing.startDot;
+                let end = getCanvasDotCoordinate(canvas, e, 0.9);
+
+                if (end) {
+                    // snap to a straight horizontal / vertical line
+                    const dr = end.r - start.r, dc = end.c - start.c;
+                    if (dr !== 0 && dc !== 0) {
+                        if (Math.abs(dr) >= Math.abs(dc)) end = { r: end.r, c: start.c };
+                        else end = { r: start.r, c: end.c };
+                    }
+                    if (end.r !== start.r || end.c !== start.c) {
+                        normalizeSegments(start, end).forEach(seg => {
+                            const line = canonicalLine(seg);
+                            if (!userLines[view].some(l => sameLine(l, line))) {
+                                userLines[view].push(line);
+                            }
+                        });
+                        showValidation = false;
+                    }
+                }
+
+                activeDrawing = null;
+                VIEWS.forEach(redrawCanvas);
+            };
+
+            canvas.addEventListener('pointerup', finish);
+            canvas.addEventListener('pointercancel', () => {
+                activeDrawing = null;
+                redrawCanvas(view);
+            });
+
+            redrawCanvas(view);
+        });
+    }
+
+    function normalizeSegments(p1, p2) {
+        const segments = [];
+        const dr = p2.r - p1.r;
+        const dc = p2.c - p1.c;
+        const steps = Math.max(Math.abs(dr), Math.abs(dc));
+        if (steps === 0) return segments;
+
+        const stepR = dr / steps;
+        const stepC = dc / steps;
+
+        for (let i = 0; i < steps; i++) {
+            segments.push({
+                r1: Math.round(p1.r + i * stepR),
+                c1: Math.round(p1.c + i * stepC),
+                r2: Math.round(p1.r + (i + 1) * stepR),
+                c2: Math.round(p1.c + (i + 1) * stepC)
+            });
+        }
+        return segments;
+    }
+
+    function getGridDimensions(canvas) {
+        const padding = canvas.width * 0.16;
+        const spacing = (canvas.width - padding * 2) / DOT_COLS;
+        return { spacing, offsetX: padding, offsetY: padding };
+    }
+
+    function getCanvasPixelCoordinate(canvas, e) {
+        const rect = canvas.getBoundingClientRect();
+        return {
+            x: (e.clientX - rect.left) * (canvas.width / rect.width),
+            y: (e.clientY - rect.top) * (canvas.height / rect.height)
+        };
+    }
+
+    function getCanvasDotCoordinate(canvas, e, tolerance) {
+        const { x, y } = getCanvasPixelCoordinate(canvas, e);
+        const { spacing, offsetX, offsetY } = getGridDimensions(canvas);
+
+        const col = Math.round((x - offsetX) / spacing);
+        const row = Math.round((y - offsetY) / spacing);
+
+        if (row >= 0 && row <= DOT_ROWS && col >= 0 && col <= DOT_COLS) {
+            const dist = Math.hypot(x - (offsetX + col * spacing), y - (offsetY + row * spacing));
+            if (dist < spacing * tolerance) return { r: row, c: col };
+        }
+        return null;
+    }
+
+    function getDotPixel(canvas, row, col) {
+        const { spacing, offsetX, offsetY } = getGridDimensions(canvas);
+        return { x: offsetX + col * spacing, y: offsetY + row * spacing };
+    }
+
+    function redrawCanvas(view) {
+        const canvas = document.getElementById(`canvas-${view}`);
+        const ctx = canvas.getContext('2d');
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        for (let r = 0; r <= DOT_ROWS; r++) {
+            for (let c = 0; c <= DOT_COLS; c++) {
+                const pt = getDotPixel(canvas, r, c);
+                ctx.fillStyle = '#94a3b8';
+                ctx.beginPath();
+                ctx.arc(pt.x, pt.y, 8, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        if (activeDrawing && activeDrawing.view === view) {
+            const startP = getDotPixel(canvas, activeDrawing.startDot.r, activeDrawing.startDot.c);
+            ctx.strokeStyle = '#3b82f6';
+            ctx.lineWidth = 7;
+            ctx.lineCap = 'round';
+            ctx.setLineDash([8, 8]);
+            ctx.beginPath();
+            ctx.moveTo(startP.x, startP.y);
+            ctx.lineTo(activeDrawing.currentPos.x, activeDrawing.currentPos.y);
+            ctx.stroke();
+            ctx.setLineDash([]);
+        }
+
+        userLines[view].forEach(line => {
+            const p1 = getDotPixel(canvas, line.r1, line.c1);
+            const p2 = getDotPixel(canvas, line.r2, line.c2);
+
+            ctx.lineWidth = 8;
+            ctx.lineCap = 'round';
+
+            if (showValidation) {
+                const isCorrect = expectedLines[view].some(el => sameLine(el, line));
+                ctx.strokeStyle = isCorrect ? '#10b981' : '#ef4444';
+            } else {
+                ctx.strokeStyle = '#1e293b';
+            }
+
+            ctx.beginPath();
+            ctx.moveTo(p1.x, p1.y);
+            ctx.lineTo(p2.x, p2.y);
+            ctx.stroke();
+        });
+
+        if (showMissing) {
+            ctx.strokeStyle = '#f59e0b';
+            ctx.lineWidth = 8;
+            ctx.lineCap = 'butt';
+            ctx.setLineDash([14, 12]);
+            expectedLines[view].forEach(el => {
+                if (userLines[view].some(l => sameLine(l, el))) return;
+                const p1 = getDotPixel(canvas, el.r1, el.c1);
+                const p2 = getDotPixel(canvas, el.r2, el.c2);
+                ctx.beginPath();
+                ctx.moveTo(p1.x, p1.y);
+                ctx.lineTo(p2.x, p2.y);
+                ctx.stroke();
+            });
+            ctx.setLineDash([]);
+        }
+    }
+
+    function canonicalLine(l) {
+        if (l.r1 < l.r2 || (l.r1 === l.r2 && l.c1 <= l.c2)) {
+            return { r1: l.r1, c1: l.c1, r2: l.r2, c2: l.c2 };
+        }
+        return { r1: l.r2, c1: l.c2, r2: l.r1, c2: l.c1 };
+    }
+
+    function sameLine(l1, l2) {
+        const a = canonicalLine(l1);
+        const b = canonicalLine(l2);
+        return a.r1 === b.r1 && a.c1 === b.c1 && a.r2 === b.r2 && a.c2 === b.c2;
+    }
+
+    function undoLastLine(view) {
+        userLines[view].pop();
+        showValidation = false;
+        redrawCanvas(view);
+    }
+
+    function clearAllDrawings() {
+        userLines = { top: [], front: [], right: [] };
+        showValidation = false;
+        VIEWS.forEach(redrawCanvas);
+    }
+
+    /* ---------------------------------------------------------------
+       TOAST MESSAGES (in-page messages instead of popups)
+    --------------------------------------------------------------- */
+    let toastTimer = null;
+
+    function showToast(type, message, opts = {}) {
+        const t = document.getElementById('toast');
+        t.className = 'toast ' + type;
+        document.getElementById('toast-msg').textContent = message;
+
+        const act = document.getElementById('toast-action');
+        if (opts.actionLabel) {
+            act.textContent = opts.actionLabel;
+            act.hidden = false;
+            act.onclick = () => { hideToast(); if (opts.onAction) opts.onAction(); };
+        } else {
+            act.hidden = true;
+            act.onclick = null;
+        }
+
+        t.hidden = false;
+        clearTimeout(toastTimer);
+        if (opts.duration) toastTimer = setTimeout(hideToast, opts.duration);
+    }
+
+    function hideToast() {
+        document.getElementById('toast').hidden = true;
+        clearTimeout(toastTimer);
+    }
+
+    /* ---------------------------------------------------------------
+       SHOW MISSING LINES (a hint: no streak credit for that model)
+    --------------------------------------------------------------- */
+    function countMissing() {
+        let n = 0;
+        VIEWS.forEach(view => {
+            n += expectedLines[view].filter(el => !userLines[view].some(l => sameLine(l, el))).length;
+        });
+        return n;
+    }
+
+    function updateMissingButton() {
+        document.getElementById('btn-missing').textContent = showMissing ? 'Hide Missing' : 'Show Missing';
+    }
+
+    function toggleMissing() {
+        if (isGameActive) return;
+        showMissing = !showMissing;
+        let n = 0;
+        if (showMissing) {
+            n = countMissing();
+            if (n > 0) usedHelp = true;
+        }
+        updateMissingButton();
+        VIEWS.forEach(redrawCanvas);
+
+        if (showMissing) {
+            showToast('info', n === 0
+                ? 'Nothing is missing. If it still is not right, look for extra lines.'
+                : `${n} missing line${n === 1 ? '' : 's'} shown dashed in orange. No streak credit for this model.`,
+                { duration: 4000 });
+        }
+    }
+
+    function setGameLocks(locked) {
+        ['btn-missing', 'level', 'btn-load-seed'].forEach(id => {
+            document.getElementById(id).disabled = locked;
+        });
+    }
+
+    /* ---------------------------------------------------------------
+       MODEL CODES (seeds)
+    --------------------------------------------------------------- */
+    function loadSeedFromInput() {
+        const v = parseInt(document.getElementById('seed-input').value, 10);
+        if (!(v > 0 && v <= 999999)) {
+            showToast('error', 'Enter a model code between 1 and 999999.', { duration: 2500 });
+            return;
+        }
+        hideToast();
+        generateNewSolidModel(v);
+    }
+
+    async function copyModelLink() {
+        const base = window.location.href.split('#')[0].split('?')[0];
+        const link = `${base}?level=${document.getElementById('level').value}&seed=${currentSeed}`;
+        try {
+            await navigator.clipboard.writeText(link);
+            showToast('info', 'Link copied! Anyone who opens it gets this same model.', { duration: 2500 });
+        } catch (err) {
+            window.prompt('Copy this link:', link);
+        }
+    }
+
+    /* ---------------------------------------------------------------
+       CHECKING + GAME MODE
+    --------------------------------------------------------------- */
+    function checkAnswer() {
+        showValidation = true;
+        let isCompleteAndCorrect = true;
+        let wrong = 0, missing = 0;
+        const viewOk = {};
+
+        VIEWS.forEach(view => {
+            redrawCanvas(view);
+
+            const u = userLines[view];
+            const e = expectedLines[view];
+
+            const missingHere = e.filter(exp => !u.some(usr => sameLine(exp, usr))).length;
+            const extraHere = u.filter(usr => !e.some(exp => sameLine(usr, exp))).length;
+            wrong += extraHere;
+            missing += missingHere;
+            viewOk[view] = (missingHere === 0 && extraHere === 0);
+            if (!viewOk[view]) isCompleteAndCorrect = false;
+        });
+
+        if (isCompleteAndCorrect) {
+            if (solved) {
+                if (!isGameActive) {
+                    showToast('info', 'Already solved! Click Next Model for another one.',
+                        { actionLabel: 'Next Model', onAction: () => generateNewSolidModel() });
+                }
+                return;
+            }
+            solved = true;
+
+            if (isGameActive) {
+                streakCount++;
+                document.getElementById('game-score').innerText = streakCount;
+                showToast('success', `✅ Correct! Streak: ${streakCount}`, { duration: 1200 });
+                setTimeout(() => generateNewSolidModel(), 400);
+            } else if (usedHelp) {
+                showToast('success', '✅ Correct! (No streak credit: you used Show Missing on this model.)',
+                    { actionLabel: 'Next Model', onAction: () => generateNewSolidModel() });
+            } else {
+                streakCount++;
+                document.getElementById('game-score').innerText = streakCount;
+                showToast('success', `🎉 Excellent! Streak: ${streakCount}`,
+                    { actionLabel: 'Next Model', onAction: () => generateNewSolidModel() });
+            }
+        } else {
+            streakCount = 0;
+            document.getElementById('game-score').innerText = streakCount;
+
+            const mark = v => viewOk[v] ? '✓' : '✗';
+            showToast('error',
+                `❌ Not quite yet.  Top ${mark('top')}   Front ${mark('front')}   Right ${mark('right')}\n` +
+                `${wrong} wrong line${wrong === 1 ? '' : 's'} (red), ${missing} line${missing === 1 ? '' : 's'} still missing. Streak reset to 0.`,
+                { duration: isGameActive ? 2500 : 0 });
+        }
+    }
+
+    function toggleGameMode() {
+        const gameBtn = document.getElementById('btn-start-game');
+
+        if (isGameActive) {
+            stopGame();
+            showToast('info', `Game stopped. Final streak: ${streakCount}`, { duration: 5000 });
+        } else {
+            isGameActive = true;
+            hideToast();
+            setGameLocks(true);
+            streakCount = 0;
+            gameTimeRemaining = 120;
+
+            document.getElementById('game-score').innerText = streakCount;
+            document.getElementById('game-timer').innerText = "2:00";
+            document.getElementById('game-timer').classList.remove('timer-warning');
+            gameBtn.innerText = "End Game ⏹️";
+            gameBtn.style.backgroundColor = "#ef4444";
+
+            generateNewSolidModel();
+
+            gameTimerInterval = setInterval(() => {
+                gameTimeRemaining--;
+
+                const mins = Math.floor(gameTimeRemaining / 60);
+                const secs = gameTimeRemaining % 60;
+                document.getElementById('game-timer').innerText = `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+
+                if (gameTimeRemaining <= 15) {
+                    document.getElementById('game-timer').classList.add('timer-warning');
+                }
+
+                if (gameTimeRemaining <= 0) {
+                    stopGame();
+                    showToast('success', `⏳ Time's up! Final streak: ${streakCount}`,
+                        { actionLabel: 'Play Again', onAction: toggleGameMode });
+                }
+            }, 1000);
+        }
+    }
+
+    function stopGame() {
+        isGameActive = false;
+        setGameLocks(false);
+        clearInterval(gameTimerInterval);
+        const gameBtn = document.getElementById('btn-start-game');
+        gameBtn.innerText = "Start Game ⏱️";
+        gameBtn.style.backgroundColor = "#d97706";
+        document.getElementById('game-timer').classList.remove('timer-warning');
+    }
+
+    function onWindowResize() {
+        const container = document.getElementById('canvas-container');
+        camera.aspect = container.clientWidth / container.clientHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(container.clientWidth, container.clientHeight);
+    }
+</script>
+</body>
+</html>
